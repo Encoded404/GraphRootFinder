@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
 
-set(PROJECT_NAME "VulkanEngineV5")
+set(PROJECT_NAME "GraphRootFinder")
 set(BACKEND_TARGET "VulkanBackend")
 set(ENGINE_TARGET "VulkanEngine")
-set(APP_TARGET "VulkanApp")
+set(APP_TARGET "GraphRootFinderApp")
 
 # if this is not set by the user cmake will decide
 set(OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
