@@ -58,4 +58,5 @@ if you want to pull from the upstream repo you can run the following commands in
 ```bash
 git fetch upstream
 git rebase upstream/main # or merge, or change the main to pull only a tag or a commit etc.
+git push --force-with-lease
 ```
