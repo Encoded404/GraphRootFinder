@@ -60,6 +60,8 @@ bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
     VulkanEngine::Game::GameConfig config{};
     config.enable_imgui = true;
     config.renderer_config.clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
+    config.renderer_config.grid_vert_spv = Shaders::App::GraphGridVert::GetSpirvWords();
+    config.renderer_config.grid_frag_spv = Shaders::App::GraphGridFrag::GetSpirvWords();
 
     if (!engine_game_.Setup(ctx, config)) {
         return false;
@@ -82,7 +84,17 @@ bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
         return false;
     }
 
-    // 3. Create a custom material for the viking room
+    // 3. Set initial grid parameters
+    grid_params_.zoom = 50.0f;
+    grid_params_.spacing = 1.0f;
+    grid_params_.line_thickness = 0.75f;
+    grid_params_.axis_thickness = 1.5f;
+    grid_params_.bg_color = glm::vec4(0.10f, 0.10f, 0.12f, 1.0f);
+    grid_params_.grid_color = glm::vec4(0.20f, 0.20f, 0.22f, 1.0f);
+    grid_params_.axis_color = glm::vec4(0.45f, 0.45f, 0.55f, 1.0f);
+    engine_game_.GetRenderer().SetGridParams(grid_params_);
+
+    // 4. Create a custom material for the viking room
     const uint32_t tex_slot = engine_game_.LoadTexture(ctx, exe_dir_ / "textures" / "viking_room.png");
     constexpr auto viking_blend = VulkanEngine::MaterialManager::BlendMode::Transparent;
 
@@ -132,7 +144,30 @@ bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
     // 7. Register ImGui debug UI
     auto* imgui = engine_game_.GetImGuiSystem();
     if (imgui) {
-        imgui_draw_handle_ = imgui->draw_callbacks.Register([&registry = backend.GetComponentRegistry()]() {
+        imgui_draw_handle_ = imgui->draw_callbacks.Register([this, &registry = backend.GetComponentRegistry()]() {
+            if (ImGui::Begin("Grid Control", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                bool changed = false;
+
+                ImGui::SeparatorText("Transform");
+                changed |= ImGui::DragFloat2("Offset", &grid_params_.offset.x, 0.1f);
+                changed |= ImGui::DragFloat("Zoom", &grid_params_.zoom, 1.0f, 1.0f, 1000.0f);
+                changed |= ImGui::DragFloat("Spacing", &grid_params_.spacing, 0.1f, 0.01f, 100.0f);
+
+                ImGui::SeparatorText("Thickness");
+                changed |= ImGui::DragFloat("Grid", &grid_params_.line_thickness, 0.1f, 0.1f, 10.0f);
+                changed |= ImGui::DragFloat("Axis", &grid_params_.axis_thickness, 0.1f, 0.1f, 10.0f);
+
+                ImGui::SeparatorText("Colors");
+                changed |= ImGui::ColorEdit3("Background", &grid_params_.bg_color.x);
+                changed |= ImGui::ColorEdit3("Grid Lines", &grid_params_.grid_color.x);
+                changed |= ImGui::ColorEdit3("Axes", &grid_params_.axis_color.x);
+
+                if (changed) {
+                    engine_game_.GetRenderer().SetGridParams(grid_params_);
+                }
+            }
+            ImGui::End();
+
             auto debug_comps = registry.GetAll<App::Components::TransformControlComponent>();
             if (debug_comps.empty()) return;
 
@@ -181,6 +216,7 @@ bool DemoGame::ShouldFilterKeyboardInput() {
 
 void DemoGame::OnFrameUpdate(const VulkanEngine::Application::ApplicationContext& ctx) {
     engine_game_.FrameUpdate(ctx);
+    engine_game_.GetRenderer().SetGridParams(grid_params_);
 }
 
 void DemoGame::OnFrameRender(const VulkanEngine::Application::ApplicationContext& ctx) {

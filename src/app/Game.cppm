@@ -53,6 +53,8 @@ private:
 
     VulkanEngine::Game::GameEngine engine_game_{};
     VulkanEngine::Utils::ScopedHandle<void()> imgui_draw_handle_{};
+
+    VulkanEngine::Renderer::GridParams grid_params_{};
 };
 
 } // namespace App::Game

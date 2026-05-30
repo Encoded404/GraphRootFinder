@@ -56,7 +56,98 @@ bool Renderer::Initialize(VulkanEngine::Runtime::VulkanBootstrap& bootstrap,
             VulkanEngine::RenderGraph::QueueType::Graphics,
             VulkanEngine::RenderGraph::ImageLayoutIntent::Present));
 
-    // ── Pass 1: Expand (compute) ──
+    // ── Grid background pipeline ──
+    if (!config.grid_vert_spv.empty() && !config.grid_frag_spv.empty()) {
+        auto& device = bootstrap.GetBackend().GetDevice();
+
+        const vk::ShaderModuleCreateInfo vert_info({}, config.grid_vert_spv.size() * sizeof(uint32_t), config.grid_vert_spv.data());
+        const vk::raii::ShaderModule vert_module(device, vert_info);
+        const vk::ShaderModuleCreateInfo frag_info({}, config.grid_frag_spv.size() * sizeof(uint32_t), config.grid_frag_spv.data());
+        const vk::raii::ShaderModule frag_module(device, frag_info);
+
+        std::array<vk::PipelineShaderStageCreateInfo, 2> stages = {
+            vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eVertex, *vert_module, "main"),
+            vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eFragment, *frag_module, "main")
+        };
+
+        constexpr uint32_t push_size = sizeof(GridParams);
+        const vk::PushConstantRange push_range(vk::ShaderStageFlagBits::eFragment, 0, push_size);
+
+        vk::PipelineLayoutCreateInfo layout_info{};
+        layout_info.setLayoutCount = 0;
+        layout_info.pSetLayouts = nullptr;
+        layout_info.pushConstantRangeCount = 1;
+        layout_info.pPushConstantRanges = &push_range;
+        grid_pipeline_layout_ = std::make_unique<vk::raii::PipelineLayout>(device, layout_info);
+        VulkanEngine::Utils::SetVulkanObjectName(device, *grid_pipeline_layout_, "graph-grid-pipeline-layout");
+
+        const vk::PipelineVertexInputStateCreateInfo vertex_input({}, 0, nullptr, 0, nullptr);
+        const vk::PipelineInputAssemblyStateCreateInfo input_assembly({}, vk::PrimitiveTopology::eTriangleList);
+        constexpr vk::PipelineViewportStateCreateInfo viewport_state({}, 1, nullptr, 1, nullptr);
+        const vk::PipelineRasterizationStateCreateInfo rasterization({}, false, false, vk::PolygonMode::eFill, vk::CullModeFlagBits::eNone, vk::FrontFace::eCounterClockwise, false, 0.0f, 0.0f, 0.0f, 1.0f);
+        const vk::PipelineMultisampleStateCreateInfo multisample({}, vk::SampleCountFlagBits::e1);
+        const vk::PipelineDepthStencilStateCreateInfo depth_stencil({}, false, false, vk::CompareOp::eAlways);
+
+        const vk::PipelineColorBlendAttachmentState color_attach(
+            false,
+            vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
+            vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
+            vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+        const vk::PipelineColorBlendStateCreateInfo color_blend({}, false, vk::LogicOp::eCopy, color_attach);
+
+        const std::array<vk::DynamicState, 2> dynamic_states = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+        const vk::PipelineDynamicStateCreateInfo dynamic_state({}, dynamic_states);
+
+        const vk::Format surface_format = bootstrap.GetBackend().GetSurfaceFormat().format;
+        vk::PipelineRenderingCreateInfo rendering_info{};
+        rendering_info.colorAttachmentCount = 1;
+        rendering_info.pColorAttachmentFormats = &surface_format;
+
+        vk::GraphicsPipelineCreateInfo pipeline_info({}, stages, &vertex_input, &input_assembly, nullptr, &viewport_state, &rasterization, &multisample, &depth_stencil, &color_blend, &dynamic_state, *grid_pipeline_layout_);
+        pipeline_info.setPNext(&rendering_info);
+
+        grid_pipeline_ = std::make_unique<vk::raii::Pipeline>(device, nullptr, pipeline_info);
+        VulkanEngine::Utils::SetVulkanObjectName(device, *grid_pipeline_, "graph-grid-pipeline");
+        grid_pass_enabled_ = true;
+    }
+
+    // ── Pass 1: Graph background (full-screen grid) ──
+    RenderGraph::PassHandle grid_pass;
+    if (grid_pass_enabled_) {
+        RenderGraph::PassAttachmentSetup grid_setup{};
+        grid_setup.auto_begin_rendering = true;
+
+        RenderGraph::AttachmentInfo grid_color{};
+        grid_color.resource = backbuffer;
+        grid_color.load_op = vk::AttachmentLoadOp::eClear;
+        grid_color.store_op = vk::AttachmentStoreOp::eStore;
+        grid_color.clear_color = vk::ClearColorValue(std::array<float, 4>{0.10f, 0.10f, 0.12f, 1.0f});
+        grid_setup.color_attachments.push_back(grid_color);
+
+        grid_pass = pipeline_->AddPass({
+            .name = "graph-grid",
+            .queue = RenderGraph::QueueType::Graphics,
+            .writes = {backbuffer},
+            .attachments = grid_setup,
+            .execute = [this](const void*, vk::CommandBuffer cmd) {
+                if (!grid_pipeline_) return;
+                cmd.setViewport(0, vk::Viewport(0.0f, 0.0f,
+                    static_cast<float>(current_width_),
+                    static_cast<float>(current_height_), 0.0f, 1.0f));
+                cmd.setScissor(0, vk::Rect2D({0, 0},
+                    {current_width_, current_height_}));
+
+                cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, **grid_pipeline_);
+
+                GridParams params = grid_params_;
+                params.screen_size = glm::vec2(static_cast<float>(current_width_), static_cast<float>(current_height_));
+                cmd.pushConstants(*grid_pipeline_layout_, vk::ShaderStageFlagBits::eFragment, 0, sizeof(GridParams), &params);
+                cmd.draw(3, 1, 0, 0);
+            }
+        });
+    }
+
+    // ── Pass 2: Expand (compute) ──
     auto expand_pass = pipeline_->AddPass({
         .name = "expand",
         .queue = VulkanEngine::RenderGraph::QueueType::Graphics,
@@ -157,10 +248,12 @@ bool Renderer::Initialize(VulkanEngine::Runtime::VulkanBootstrap& bootstrap,
 
     VulkanEngine::RenderGraph::AttachmentInfo color_attach{};
     color_attach.resource = backbuffer;
-    color_attach.load_op = vk::AttachmentLoadOp::eClear;
+    color_attach.load_op = grid_pass_enabled_ ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear;
     color_attach.store_op = vk::AttachmentStoreOp::eStore;
-    color_attach.clear_color = vk::ClearColorValue(std::array<float, 4>{
-        config.clear_color.r, config.clear_color.g, config.clear_color.b, config.clear_color.a});
+    if (!grid_pass_enabled_) {
+        color_attach.clear_color = vk::ClearColorValue(std::array<float, 4>{
+            config.clear_color.r, config.clear_color.g, config.clear_color.b, config.clear_color.a});
+    }
     main_setup.color_attachments.push_back(color_attach);
 
     VulkanEngine::RenderGraph::AttachmentInfo main_depth_attach{};
@@ -223,6 +316,9 @@ bool Renderer::Initialize(VulkanEngine::Runtime::VulkanBootstrap& bootstrap,
     }
 
     // Explicit ordering ensures correct pipeline
+    if (grid_pass_enabled_) {
+        pipeline_->AddDependency(grid_pass, expand_pass);
+    }
     pipeline_->AddDependency(expand_pass, depth_pass);
     pipeline_->AddDependency(depth_pass, hiz_pass);
     pipeline_->AddDependency(hiz_pass, occlusion_pass);
@@ -257,6 +353,8 @@ void Renderer::Shutdown() {
             LOGIFACE_LOG(error, "Error during Renderer shutdown: " + std::string(err.what()));
         }
     }
+    grid_pipeline_.reset();
+    grid_pipeline_layout_.reset();
     gpu_stats_pool_.reset();
     if (pipeline_) {
         pipeline_->Shutdown();
