@@ -5,6 +5,7 @@ find_package(CLI11 CONFIG REQUIRED)
 add_executable(app_tests
   example_tests.cpp
   ${CMAKE_SOURCE_DIR}/src/app/Game.cpp
+  ${CMAKE_SOURCE_DIR}/src/app/GridCameraController.cpp
 )
 target_link_libraries(app_tests PRIVATE
   ${ENGINE_TARGET}
@@ -22,6 +23,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     BASE_DIRS ${CMAKE_SOURCE_DIR}/src/app
     FILES
       ${CMAKE_SOURCE_DIR}/src/app/Game.cppm
+      ${CMAKE_SOURCE_DIR}/src/app/GridCameraController.cppm
   )
 
   # Register app shader modules needed by Game.cpp

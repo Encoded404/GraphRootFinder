@@ -19,6 +19,32 @@ import Shaders.Engine.StandardMeshFrag;
 import Shaders.App.NormalsFrag;
 import Shaders.App.SolidFrag;
 
+namespace {
+    static int GetDynamicPrecision(float value, int significant_digits, float zero_morethan_equal = 10.0f)
+    {
+        if (std::abs(value) >= zero_morethan_equal) {
+            return 0;
+        }
+
+        if (value == 0.0f) {
+            return significant_digits; // edge case: just return x
+        }
+
+        value = std::fabs(value);
+
+        int precision = 0;
+
+        // Move decimal until first non-zero digit appears
+        while (value < 1.0f)
+        {
+            value *= 10.0f;
+            precision++;
+        }
+
+        return precision + significant_digits;
+    }
+}
+
 namespace App::Game {
 
 DemoGame::DemoGame(const RenderMode render_mode, const std::filesystem::path& executable_path,
@@ -82,15 +108,9 @@ bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
         return false;
     }
 
-    // 3. Set initial grid parameters
-    grid_params_.zoom = 50.0f;
-    grid_params_.spacing = 1.0f;
-    grid_params_.line_thickness = 0.75f;
-    grid_params_.axis_thickness = 1.5f;
-    grid_params_.bg_color = glm::vec4(0.10f, 0.10f, 0.12f, 1.0f);
-    grid_params_.grid_color = glm::vec4(0.20f, 0.20f, 0.22f, 1.0f);
-    grid_params_.axis_color = glm::vec4(0.45f, 0.45f, 0.55f, 1.0f);
-    engine_game_.GetRenderer().SetGridParams(grid_params_);
+    // 3. Create grid camera controller
+    camera_controller_ = std::make_unique<GridCameraController>(*ctx.input_system);
+    engine_game_.GetRenderer().SetGridParams(camera_controller_->GetGridParams());
 
     // 4. Upload empty scene (no demo models)
     engine_game_.UploadScene(ctx, {});
@@ -103,25 +123,22 @@ bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
     auto* imgui = engine_game_.GetImGuiSystem();
     if (imgui) {
         imgui_draw_handle_ = imgui->draw_callbacks.Register([this]() {
-            if (ImGui::Begin("Grid Control", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-                bool changed = false;
+            ImGui::SetNextWindowPos(ImVec2(0, 0));
+            if (ImGui::Begin("Grid View", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                auto& params = camera_controller_->GetGridParams();
 
-                ImGui::SeparatorText("Transform");
-                changed |= ImGui::DragFloat2("Offset", &grid_params_.offset.x, 0.1f);
-                changed |= ImGui::DragFloat("Zoom", &grid_params_.zoom, 1.0f, 1.0f, 1000.0f);
-                changed |= ImGui::DragFloat("Spacing", &grid_params_.spacing, 0.1f, 0.01f, 100.0f);
+                const float fixed_zoom = params.zoom / GridCameraController::GetDefaultZoom();
+                ImGui::Text("Position: (%.*f, %.*f)",
+                    GetDynamicPrecision(params.offset.x, 1), params.offset.x,
+                    GetDynamicPrecision(params.offset.y, 1), params.offset.y
+                );
+                ImGui::Text("Zoom: %.*fx", GetDynamicPrecision(fixed_zoom, 1), fixed_zoom); // default zoom appears to be 1x
 
-                ImGui::SeparatorText("Thickness");
-                changed |= ImGui::DragFloat("Grid", &grid_params_.line_thickness, 0.1f, 0.1f, 10.0f);
-                changed |= ImGui::DragFloat("Axis", &grid_params_.axis_thickness, 0.1f, 0.1f, 10.0f);
+                ImGui::Separator();
 
-                ImGui::SeparatorText("Colors");
-                changed |= ImGui::ColorEdit3("Background", &grid_params_.bg_color.x);
-                changed |= ImGui::ColorEdit3("Grid Lines", &grid_params_.grid_color.x);
-                changed |= ImGui::ColorEdit3("Axes", &grid_params_.axis_color.x);
-
-                if (changed) {
-                    engine_game_.GetRenderer().SetGridParams(grid_params_);
+                if (ImGui::Button("Reset View")) {
+                    camera_controller_->Reset();
+                    engine_game_.GetRenderer().SetGridParams(camera_controller_->GetGridParams());
                 }
             }
             ImGui::End();
@@ -147,8 +164,9 @@ bool DemoGame::ShouldFilterKeyboardInput() {
 }
 
 void DemoGame::OnFrameUpdate(const VulkanEngine::Application::ApplicationContext& ctx) {
+    camera_controller_->Update(ctx.input_system->GetRawState());
     engine_game_.FrameUpdate(ctx);
-    engine_game_.GetRenderer().SetGridParams(grid_params_);
+    engine_game_.GetRenderer().SetGridParams(camera_controller_->GetGridParams());
 }
 
 void DemoGame::OnFrameRender(const VulkanEngine::Application::ApplicationContext& ctx) {

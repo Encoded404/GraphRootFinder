@@ -5,6 +5,7 @@ module;
 export module App.Game;
 
 export import VulkanEngine.Game;
+import App.GridCameraController;
 import VulkanBackend.Utils.CallbackList;
 import Shaders.App.GraphGridVert;
 import Shaders.App.GraphGridFrag;
@@ -54,7 +55,7 @@ private:
     VulkanEngine::Game::GameEngine engine_game_{};
     VulkanEngine::Utils::ScopedHandle<void()> imgui_draw_handle_{};
 
-    VulkanEngine::Renderer::GridParams grid_params_{};
+    std::unique_ptr<GridCameraController> camera_controller_{};
 };
 
 } // namespace App::Game

@@ -66,8 +66,8 @@ bool Renderer::Initialize(VulkanEngine::Runtime::VulkanBootstrap& bootstrap,
         const vk::raii::ShaderModule frag_module(device, frag_info);
 
         std::array<vk::PipelineShaderStageCreateInfo, 2> stages = {
-            vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eVertex, *vert_module, "vert_main"),
-            vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eFragment, *frag_module, "frag_main")
+            vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eVertex, *vert_module, "main"),
+            vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eFragment, *frag_module, "main")
         };
 
         constexpr uint32_t push_size = sizeof(GridParams);

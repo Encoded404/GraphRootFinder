@@ -19,7 +19,7 @@ struct VSOutput {
 };
 
 [shader("vertex")]
-VSOutput vert_main(uint vertexIndex : SV_VertexIndex) {
+VSOutput vert_main(uint vertexIndex : SV_VertexID) {
     VSOutput output;
     float x = (vertexIndex == 2) ? 3.0 : -1.0;
     float y = (vertexIndex == 1) ? 3.0 : -1.0;
@@ -35,7 +35,7 @@ struct PSInput {
 [shader("fragment")]
 float4 frag_main(PSInput input) : SV_TARGET {
     float2 pixel_pos = (input.inUV - 0.5) * params.screen_size;
-    float2 graph = pixel_pos / params.zoom + params.offset;
+    float2 graph = float2(pixel_pos.x, -pixel_pos.y) / params.zoom + params.offset;
 
     float2 grid_dist = abs(frac(graph / params.spacing + 0.5) - 0.5)
                      * params.spacing * params.zoom;

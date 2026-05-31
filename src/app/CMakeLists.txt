@@ -2,6 +2,7 @@ add_executable(${APP_TARGET})
 target_sources(${APP_TARGET} PRIVATE
     main.cpp
     Game.cpp
+    GridCameraController.cpp
 )
 
 # Compile slang shaders to SPIR-V + generate C++20 modules with #embed
@@ -32,6 +33,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
         FILES
             Game.cppm
+            GridCameraController.cppm
     )
 
     # Register generated slang shader module files
