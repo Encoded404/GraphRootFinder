@@ -5,6 +5,8 @@ module;
 #include <cmath>
 #include <vector>
 
+#include <logging/logging.hpp>
+
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp> // NOLINT(misc-include-cleaner)
@@ -171,6 +173,8 @@ void LineRenderer::RegenerateMesh() {
         submeshes[0].index_count = static_cast<uint32_t>(idx_count);
         submeshes[0].material_id = material_id_;
     }
+
+    LOGIFACE_LOG(trace, "updated line with index count of: " + std::to_string(static_cast<uint32_t>(idx_count)));
 
     dyn_mesh_->submesh_count = static_cast<uint32_t>(submeshes.size());
     dyn_mesh_->first_submesh = 0;
