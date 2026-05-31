@@ -18,8 +18,10 @@ add_slang_shaders(
     COMPILER    slang-spirv-compiler
     OPT_LEVEL   ${_shader_opt_level}
     SHADERS
-        NormalsFrag  normals.slang  fragment main
-        SolidFrag    solid.slang    fragment main
+        GraphGridVert  grid.slang  vertex  vert_main
+        GraphGridFrag  grid.slang  fragment  frag_main
+        NormalsFrag    normals.slang  fragment main
+        SolidFrag      solid.slang    fragment main
 )
 add_dependencies(${APP_TARGET} ${APP_TARGET}_shaders)
 get_target_property(_gen_shader_mods ${APP_TARGET}_shaders SLANG_CPPM_FILES)

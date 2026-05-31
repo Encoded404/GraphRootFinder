@@ -3,7 +3,6 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <FileLoader/Types.hpp>
-#include <string>
 #include <vector>
 #include <array>
 

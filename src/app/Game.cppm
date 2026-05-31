@@ -6,6 +6,8 @@ export module App.Game;
 
 export import VulkanEngine.Game;
 import VulkanBackend.Utils.CallbackList;
+import Shaders.App.GraphGridVert;
+import Shaders.App.GraphGridFrag;
 
 export namespace App::Game {
 
