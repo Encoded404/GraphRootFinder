@@ -29,8 +29,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         FILE_SET CXX_MODULES
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
         FILES
-            Components/SimpleControllerComponent.cppm
-            Components/TransformControlComponent.cppm
             Game.cppm
     )
 
@@ -100,12 +98,3 @@ if(COMMAND enable_target_clang_tidy)
     enable_target_clang_tidy(${APP_TARGET})
 endif()
 
-include(CopyAppAssets)
-configure_app_asset_copy(${APP_TARGET}
-    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/models"
-    DEST_SUBDIR "models"
-)
-configure_app_asset_copy(${APP_TARGET}
-    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/textures"
-    DEST_SUBDIR "textures"
-)

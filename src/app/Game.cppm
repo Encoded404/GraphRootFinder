@@ -6,8 +6,6 @@ export module App.Game;
 
 export import VulkanEngine.Game;
 import VulkanBackend.Utils.CallbackList;
-export import App.Components.SimpleControllerComponent;
-export import App.Components.TransformControlComponent;
 
 export namespace App::Game {
 

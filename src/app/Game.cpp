@@ -15,8 +15,6 @@ module App.Game;
 
 import VulkanEngine.Game;
 import VulkanEngine.GpuResources.MeshData;
-import App.Components.SimpleControllerComponent;
-import App.Components.TransformControlComponent;
 import Shaders.Engine.StandardMeshFrag;
 import Shaders.App.NormalsFrag;
 import Shaders.App.SolidFrag;
@@ -94,57 +92,17 @@ bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
     grid_params_.axis_color = glm::vec4(0.45f, 0.45f, 0.55f, 1.0f);
     engine_game_.GetRenderer().SetGridParams(grid_params_);
 
-    // 4. Create a custom material for the viking room
-    const uint32_t tex_slot = engine_game_.LoadTexture(ctx, exe_dir_ / "textures" / "viking_room.png");
-    constexpr auto viking_blend = VulkanEngine::MaterialManager::BlendMode::Transparent;
-
-    const auto viking_mat_id = VulkanEngine::MaterialManager::MaterialManager::Get().RegisterMaterial({
-        .technique_id = engine_game_.GetMainTechniqueId(),
-        .texture_slot = VulkanEngine::BindlessManager::TextureSlot{static_cast<uint16_t>(tex_slot)},
-        .blend_mode = viking_blend
-    }, engine_game_.GetResourceManager(), engine_game_.GetBindlessManager());
-
-    // 4. Load meshes and register with MeshRegistry
-    const std::vector<VulkanEngine::SceneLoader::MaterialId> viking_bindings = {viking_mat_id};
-
-    auto viking_mesh = VulkanEngine::SceneLoader::SceneLoader::LoadMeshData(
-        exe_dir_ / "models" / "viking_room.obj", &viking_bindings);
-    auto monkey_mesh = VulkanEngine::SceneLoader::SceneLoader::LoadMeshData(
-        exe_dir_ / "models" / "simple-monkey.bin", nullptr);
-
-    auto& mesh_registry = engine_game_.GetMeshRegistry();
-    const uint32_t viking_id = mesh_registry.Register(viking_mesh);
-    const uint32_t monkey_id = mesh_registry.Register(monkey_mesh);
-
-    // Mark scene as valid so rendering begins
-    engine_game_.MarkSceneValid();
+    // 4. Upload empty scene (no demo models)
+    engine_game_.UploadScene(ctx, {});
 
     // 5. Create camera
     auto& backend = ctx.bootstrap->GetBackend();
     engine_game_.CreateCamera(backend.GetComponentRegistry());
 
-    // 6. Create game entities with simplified MeshReference
-    {
-        auto& entity = backend.GetComponentRegistry().CreateEntity();
-        backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::Transform>(entity);
-        auto& mesh_ref = backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::MeshReference>(entity);
-        mesh_ref.loaded_mesh_id = viking_id;
-
-        auto& debug_comp = backend.GetComponentRegistry().AddComponent<App::Components::TransformControlComponent>(entity);
-        debug_comp.position = glm::vec3{0.0f, 0.0f, 0.0f};
-    }
-    {
-        auto& entity = backend.GetComponentRegistry().CreateEntity();
-        backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::Transform>(entity);
-        auto& mesh_ref = backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::MeshReference>(entity);
-        mesh_ref.loaded_mesh_id = monkey_id;
-        backend.GetComponentRegistry().AddComponent<App::Components::SimpleControllerComponent>(entity, ctx.input_system);
-    }
-
-    // 7. Register ImGui debug UI
+    // 6. Register ImGui debug UI
     auto* imgui = engine_game_.GetImGuiSystem();
     if (imgui) {
-        imgui_draw_handle_ = imgui->draw_callbacks.Register([this, &registry = backend.GetComponentRegistry()]() {
+        imgui_draw_handle_ = imgui->draw_callbacks.Register([this]() {
             if (ImGui::Begin("Grid Control", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
                 bool changed = false;
 
@@ -167,36 +125,10 @@ bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
                 }
             }
             ImGui::End();
-
-            auto debug_comps = registry.GetAll<App::Components::TransformControlComponent>();
-            if (debug_comps.empty()) return;
-
-            for (auto* dc : debug_comps) {
-                ImGui::Begin("Transform Control", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-
-                ImGui::DragFloat3("Position", &dc->position.x, 0.1f);
-
-                ImGui::SeparatorText("Texture");
-                ImGui::DragInt("Slot", &dc->texture_slot, 1, 0, 255);
-
-                ImGui::SeparatorText("Rotation");
-                constexpr const char* modes[] = {"Euler (vec3)", "Quaternion (vec4)"}; // NOLINT(modernize-avoid-c-arrays)
-                int mode = static_cast<int>(dc->rotation_mode);
-                if (ImGui::Combo("Mode", &mode, modes, 2)) {
-                    dc->rotation_mode = static_cast<App::Components::RotationMode>(mode);
-                }
-                if (dc->rotation_mode == App::Components::RotationMode::Euler) {
-                    ImGui::DragFloat3("Euler (deg)", &dc->rotation_euler.x, 1.0f);
-                } else {
-                    ImGui::DragFloat4("Quaternion", &dc->rotation_quat.x, 0.01f);
-                }
-
-                ImGui::End();
-            }
         });
     }
 
-    // 8. Bind quit action
+    // 7. Bind quit action
     ctx.quit_action_handle = ctx.input_system->BindAction("quit",
         VulkanEngine::Input::InputBinding::Key(SDLK_ESCAPE));
 

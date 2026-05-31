@@ -21,8 +21,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     FILE_SET CXX_MODULES
     BASE_DIRS ${CMAKE_SOURCE_DIR}/src/app
     FILES
-      ${CMAKE_SOURCE_DIR}/src/app/Components/SimpleControllerComponent.cppm
-      ${CMAKE_SOURCE_DIR}/src/app/Components/TransformControlComponent.cppm
       ${CMAKE_SOURCE_DIR}/src/app/Game.cppm
   )
 
