@@ -24,7 +24,7 @@ VSOutput vert_main(uint vertexIndex : SV_VertexID) {
     float x = (vertexIndex == 2) ? 3.0 : -1.0;
     float y = (vertexIndex == 1) ? 3.0 : -1.0;
     output.outUV = float2(x, y) * 0.5 + 0.5;
-    output.position = float4(x, y, 0.0, 1.0);
+    output.position = float4(x, y, 1.0, 1.0);
     return output;
 }
 
