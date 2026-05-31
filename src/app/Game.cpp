@@ -52,7 +52,7 @@ namespace {
 
 namespace App::Game {
 
-DemoGame::DemoGame(const RenderMode render_mode, const std::filesystem::path& executable_path,
+GraphGame::GraphGame(const RenderMode render_mode, const std::filesystem::path& executable_path,
                    std::filesystem::path model_path,
                    std::filesystem::path texture_path)
     : render_mode_(render_mode)
@@ -82,9 +82,9 @@ DemoGame::DemoGame(const RenderMode render_mode, const std::filesystem::path& ex
     });
 }
 
-DemoGame::~DemoGame() = default;
+GraphGame::~GraphGame() = default;
 
-bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
+bool GraphGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
     // 1. Configure and init engine subsystems
     VulkanEngine::Game::GameConfig config{};
     config.enable_imgui = true;
@@ -170,18 +170,18 @@ bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
     return true;
 }
 
-void DemoGame::OnPreInput(VulkanEngine::Application::ApplicationContext& /*ctx*/) {
+void GraphGame::OnPreInput(VulkanEngine::Application::ApplicationContext& /*ctx*/) {
 }
 
-bool DemoGame::ShouldFilterMouseInput() {
+bool GraphGame::ShouldFilterMouseInput() {
     return ImGui::GetIO().WantCaptureMouse;
 }
 
-bool DemoGame::ShouldFilterKeyboardInput() {
+bool GraphGame::ShouldFilterKeyboardInput() {
     return ImGui::GetIO().WantCaptureKeyboard;
 }
 
-void DemoGame::OnFrameUpdate(const VulkanEngine::Application::ApplicationContext& ctx) {
+void GraphGame::OnFrameUpdate(const VulkanEngine::Application::ApplicationContext& ctx) {
     camera_controller_->Update(ctx.input_system->GetRawState());
 
     // Update line renderer segments — runs BEFORE engine_game_.FrameUpdate
@@ -205,11 +205,11 @@ void DemoGame::OnFrameUpdate(const VulkanEngine::Application::ApplicationContext
     engine_game_.GetRenderer().SetGridParams(camera_controller_->GetGridParams());
 }
 
-void DemoGame::OnFrameRender(const VulkanEngine::Application::ApplicationContext& ctx) {
+void GraphGame::OnFrameRender(const VulkanEngine::Application::ApplicationContext& ctx) {
     engine_game_.FrameRender(ctx);
 }
 
-void DemoGame::OnShutdown(VulkanEngine::Application::ApplicationContext& /*ctx*/) {
+void GraphGame::OnShutdown(VulkanEngine::Application::ApplicationContext& /*ctx*/) {
     imgui_draw_handle_ = {};
     camera_controller_.reset();
     engine_game_.Shutdown();
