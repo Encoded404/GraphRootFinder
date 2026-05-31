@@ -18,6 +18,7 @@ public:
     VulkanEngine::FieldHandle<glm::vec3> scale;    // NOLINT(misc-non-private-member-variables-in-classes)
 
     void Initialize() override {
+        LOGIFACE_LOG(debug, "transform values initialized to default");
         position = glm::vec3{0.0f, 0.0f, 0.0f};
         scale = glm::vec3{1.0f, 1.0f, 1.0f};
         rotation = glm::quat{1.0f, 0.0f, 0.0f, 0.0f};

@@ -124,8 +124,6 @@ bool GraphGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
     auto& backend = ctx.bootstrap->GetBackend();
     engine_game_.CreateCamera(backend.GetComponentRegistry());
 
-    backend.GetComponentRegistry().InitializeAllComponents();
-
     // 5b. Create a LineRenderer demo entity (rotating cross)
     {
         auto& entity = backend.GetComponentRegistry().CreateEntity();
