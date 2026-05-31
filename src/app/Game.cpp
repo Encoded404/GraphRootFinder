@@ -146,9 +146,10 @@ bool GraphGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
                 auto& params = camera_controller_->GetGridParams();
 
                 const float fixed_zoom = params.zoom / GridCameraController::GetDefaultZoom();
+                const int position_precision = GetDynamicPrecision(fixed_zoom, 2);
                 ImGui::Text("Position: (%.*f, %.*f)",
-                    GetDynamicPrecision(params.offset.x, 1), params.offset.x,
-                    GetDynamicPrecision(params.offset.y, 1), params.offset.y
+                    position_precision, params.offset.x,
+                    position_precision, params.offset.y
                 );
                 ImGui::Text("Zoom: %.*fx", GetDynamicPrecision(fixed_zoom, 1), fixed_zoom); // default zoom appears to be 1x
 
