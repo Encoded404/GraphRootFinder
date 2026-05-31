@@ -78,6 +78,7 @@ target_sources(${ENGINE_TARGET} PRIVATE
     assets/SceneLoader.cpp
     assets/MeshRegistry.cpp
     platform/Components/DynamicMesh.cpp
+    platform/Components/LineRenderer.cpp
     rendering/Renderer.cpp
     rendering/TechniqueManager/TechniqueManager.cpp
     rendering/MaterialManager/MaterialManager.cpp
@@ -134,6 +135,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
             platform/Components/Camera.cppm
             platform/Components/MeshReference.cppm
             platform/Components/DynamicMesh.cppm
+            platform/Components/LineRenderer.cppm
             assets/FileLoaders/Mesh/BinMeshAssembler.cppm
             assets/FileLoaders/Mesh/GltfMeshAssembler.cppm
             assets/FileLoaders/Mesh/MeshLoaderBase.cppm

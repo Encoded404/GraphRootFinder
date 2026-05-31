@@ -6,6 +6,7 @@ export module App.Game;
 
 export import VulkanEngine.Game;
 import App.GridCameraController;
+import VulkanEngine.Components.LineRenderer;
 import VulkanBackend.Utils.CallbackList;
 import Shaders.App.GraphGridVert;
 import Shaders.App.GraphGridFrag;
@@ -56,6 +57,10 @@ private:
     VulkanEngine::Utils::ScopedHandle<void()> imgui_draw_handle_{};
 
     std::unique_ptr<GridCameraController> camera_controller_{};
+
+    // Demo: LineRenderer
+    VulkanEngine::Components::LineRenderer* line_renderer_ = nullptr;
+    float line_angle_ = 0.0f;
 };
 
 } // namespace App::Game

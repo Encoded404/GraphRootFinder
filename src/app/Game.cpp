@@ -2,6 +2,8 @@ module;
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RADIANS
+#include <cmath>
+#include <glm/vec3.hpp> // NOLINT(misc-include-cleaner)
 #include <glm/vec4.hpp> // NOLINT(misc-include-cleaner)
 #include <glm/gtc/quaternion.hpp> // NOLINT(misc-include-cleaner)
 #include <utility>
@@ -14,6 +16,9 @@ module;
 module App.Game;
 
 import VulkanEngine.Game;
+import VulkanEngine.Components.DynamicMesh;
+import VulkanEngine.Components.MeshRenderer;
+import VulkanEngine.Components.LineRenderer;
 import VulkanEngine.GpuResources.MeshData;
 import Shaders.Engine.StandardMeshFrag;
 import Shaders.App.NormalsFrag;
@@ -119,6 +124,19 @@ bool DemoGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
     auto& backend = ctx.bootstrap->GetBackend();
     engine_game_.CreateCamera(backend.GetComponentRegistry());
 
+    backend.GetComponentRegistry().InitializeAllComponents();
+
+    // 5b. Create a LineRenderer demo entity (rotating cross)
+    {
+        auto& entity = backend.GetComponentRegistry().CreateEntity();
+        backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::Transform>(entity);
+        backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::DynamicMesh>(entity);
+        backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::MeshRenderer>(entity);
+        auto& line = backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::LineRenderer>(entity);
+        line.Setup(engine_game_.GetMeshManager(), 256);
+        line_renderer_ = &line;
+    }
+
     // 6. Register ImGui debug UI
     auto* imgui = engine_game_.GetImGuiSystem();
     if (imgui) {
@@ -165,6 +183,24 @@ bool DemoGame::ShouldFilterKeyboardInput() {
 
 void DemoGame::OnFrameUpdate(const VulkanEngine::Application::ApplicationContext& ctx) {
     camera_controller_->Update(ctx.input_system->GetRawState());
+
+    // Update line renderer segments — runs BEFORE engine_game_.FrameUpdate
+    // so that LineRenderer::Update (called inside FrameUpdate) picks up the changes.
+    if (line_renderer_ != nullptr) {
+        line_angle_ += ctx.frame.delta_time * 0.5f;
+        const float r = 0.5f;
+        const float c = std::cos(line_angle_);
+        const float s = std::sin(line_angle_);
+
+        line_renderer_->segments = {
+            {{-r * c, -r * s, 0.0f}, {r * c, r * s, 0.0f}},
+            {{-r * s,  r * c, 0.0f}, {r * s, -r * c, 0.0f}},
+            {{-r, 0.0f, -r}, {r, 0.0f, -r}},
+            {{0.0f, -r, -r}, {0.0f, r, -r}},
+        };
+        line_renderer_->mesh_dirty = true;
+    }
+
     engine_game_.FrameUpdate(ctx);
     engine_game_.GetRenderer().SetGridParams(camera_controller_->GetGridParams());
 }
@@ -175,6 +211,7 @@ void DemoGame::OnFrameRender(const VulkanEngine::Application::ApplicationContext
 
 void DemoGame::OnShutdown(VulkanEngine::Application::ApplicationContext& /*ctx*/) {
     imgui_draw_handle_ = {};
+    camera_controller_.reset();
     engine_game_.Shutdown();
 }
 
