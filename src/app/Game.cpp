@@ -131,7 +131,19 @@ bool GraphGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
         backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::DynamicMesh>(entity);
         backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::MeshRenderer>(entity);
         auto& line = backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::LineRenderer>(entity);
-        line.Setup(engine_game_.GetMeshManager(), 256);
+
+        // Create black material for the line renderer
+        auto black_texture = VulkanEngine::DefaultTextureFactory::DefaultTextureFactory::CreateSolidColorTexture(
+            engine_game_.GetResourceManager(), {{0, 0, 0, 255}});
+        const uint32_t black_slot = engine_game_.UploadTextureToBindless(ctx, black_texture.get());
+        VulkanEngine::MaterialManager::MaterialDefinition black_def{};
+        black_def.technique_id = engine_game_.GetMainTechniqueId();
+        black_def.texture_slot = VulkanEngine::BindlessManager::TextureSlot{static_cast<uint16_t>(black_slot)};
+        black_def.blend_mode = VulkanEngine::MaterialManager::BlendMode::Opaque;
+        const auto line_mat_id = VulkanEngine::MaterialManager::MaterialManager::Get().RegisterMaterial(
+            black_def, engine_game_.GetResourceManager(), engine_game_.GetBindlessManager());
+
+        line.Setup(engine_game_.GetMeshManager(), 256, line_mat_id);
         line.SetCamera(engine_game_.GetCamera());
         line_renderer_ = &line;
     }
