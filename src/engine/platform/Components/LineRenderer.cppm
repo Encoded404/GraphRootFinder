@@ -9,6 +9,7 @@ module;
 export module VulkanEngine.Components.LineRenderer;
 
 import VulkanBackend.Component;
+import VulkanEngine.Components.Camera;
 import VulkanEngine.Components.DynamicMesh;
 import VulkanEngine.MeshManager;
 import VulkanEngine.GpuResources.MeshData;
@@ -36,6 +37,7 @@ public:
     // --- API ---
     void Setup(MeshManager& mgr, size_t max_segments,
                MaterialManager::MaterialId material_id = {});
+    void SetCamera(Camera* cam) { camera_ = cam; }
     void SetSegments(const std::vector<LineSegment>& segs);
     void SetThickness(float t);
 
@@ -43,6 +45,7 @@ private:
     void RegenerateMesh();
 
     DynamicMesh* dyn_mesh_ = nullptr;
+    Camera* camera_ = nullptr;
     size_t max_segments_ = 128;
     MaterialManager::MaterialId material_id_{0};
 };

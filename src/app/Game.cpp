@@ -132,6 +132,7 @@ bool GraphGame::OnSetup(VulkanEngine::Application::ApplicationContext& ctx) {
         backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::MeshRenderer>(entity);
         auto& line = backend.GetComponentRegistry().AddComponent<VulkanEngine::Components::LineRenderer>(entity);
         line.Setup(engine_game_.GetMeshManager(), 256);
+        line.SetCamera(engine_game_.GetCamera());
         line_renderer_ = &line;
     }
 

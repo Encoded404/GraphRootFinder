@@ -117,10 +117,20 @@ void LineRenderer::RegenerateMesh() {
             const glm::vec3 dir = dir_vec / len;
 
             glm::vec3 perp;
-            if (std::abs(dir.y) < 0.9f) {
-                perp = glm::normalize(glm::cross(dir, glm::vec3(0.0f, 1.0f, 0.0f)));
+            if (camera_ != nullptr) {
+                const glm::vec3 view_dir = glm::normalize(camera_->target - camera_->position);
+                const float dv_dot = glm::dot(dir, view_dir);
+                if (std::abs(dv_dot) > 0.999f) {
+                    perp = glm::normalize(glm::cross(dir, camera_->up));
+                } else {
+                    perp = glm::normalize(glm::cross(dir, view_dir));
+                }
             } else {
-                perp = glm::normalize(glm::cross(dir, glm::vec3(1.0f, 0.0f, 0.0f)));
+                if (std::abs(dir.y) < 0.9f) {
+                    perp = glm::normalize(glm::cross(dir, glm::vec3(0.0f, 1.0f, 0.0f)));
+                } else {
+                    perp = glm::normalize(glm::cross(dir, glm::vec3(1.0f, 0.0f, 0.0f)));
+                }
             }
             perp *= thickness * 0.5f;
 
